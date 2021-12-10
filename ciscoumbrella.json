@@ -14,6 +14,7 @@
         "Cloud, API s-platform.api.opendns, February 5 2021"
     ],
     "python_version": "3",
+    "fips_compliant":true,
     "publisher": "Splunk",
     "package_name": "phantom_ciscoumbrella",
     "logo": "logo_ciscoumbrella.svg",
