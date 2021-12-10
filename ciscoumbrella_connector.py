@@ -14,17 +14,15 @@
 # and limitations under the License.
 #
 #
-# Phantom imports
+from datetime import datetime
+
 import phantom.app as phantom
-from phantom.base_connector import BaseConnector
-from phantom.action_result import ActionResult
-
-# THIS Connector imports
-from ciscoumbrella_consts import *
-
 import requests
 import simplejson as json
-from datetime import datetime
+from phantom.action_result import ActionResult
+from phantom.base_connector import BaseConnector
+
+from ciscoumbrella_consts import *
 
 
 class CiscoumbrellaConnector(BaseConnector):
@@ -329,8 +327,9 @@ class CiscoumbrellaConnector(BaseConnector):
 
 if __name__ == '__main__':
 
-    import pudb
     import argparse
+
+    import pudb
 
     pudb.set_trace()
 
