@@ -30,4 +30,12 @@ The next step is to configure a 'Cisco Umbrella' app's asset on Phantom and spec
 Customer key' and click 'Test Connectivity' to validate the configuration.
 
 More information about 'custom integrations' can be found
-[here](https://support.umbrella.com/hc/en-us/articles/231248748) .  
+[here](https://support.umbrella.com/hc/en-us/articles/231248748) .
+
+## Port Information
+The app uses HTTP/ HTTPS protocol for communicating with the Cisco Umbrella server. Below are the default ports used by Splunk SOAR.
+
+SERVICE NAME | TRANSPORT PROTOCOL | PORT
+------------ | ------------------ | ----
+**http** | tcp | 80
+**https** | tcp | 443
