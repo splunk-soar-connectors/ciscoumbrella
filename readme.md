@@ -2,7 +2,7 @@
 # Cisco Umbrella
 
 Publisher: Splunk  
-Connector Version: 1\.1\.1  
+Connector Version: 1\.1\.2  
 Product Vendor: Cisco  
 Product Name: Cisco Umbrella  
 Product Version Supported (regex): "\.\*"  
