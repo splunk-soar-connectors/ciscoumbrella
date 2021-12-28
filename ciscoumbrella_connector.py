@@ -64,9 +64,12 @@ class CiscoumbrellaConnector(BaseConnector):
 
         return ret_val
 
-    def _make_delete_rest_call(self, endpoint, action_result, request_params={}):
+    def _make_delete_rest_call(self, endpoint, action_result, request_params=None):
 
         config = self.get_config()
+
+        if request_params is None:
+            request_params = {}
 
         request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
 
@@ -76,7 +79,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.delete(self._base_url + endpoint, headers=headers, params=request_params, verify=True)
+            r = requests.delete(self._base_url + endpoint, headers=headers,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
@@ -99,9 +103,12 @@ class CiscoumbrellaConnector(BaseConnector):
 
         return (phantom.APP_SUCCESS, resp_json, status_code)
 
-    def _make_rest_call(self, endpoint, action_result, request_params={}):
+    def _make_rest_call(self, endpoint, action_result, request_params=None):
 
         config = self.get_config()
+
+        if request_params is None:
+            request_params = {}
 
         request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
 
@@ -111,7 +118,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.get(self._base_url + endpoint, headers=headers, params=request_params, verify=True)
+            r = requests.get(self._base_url + endpoint, headers=headers,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
@@ -133,9 +141,12 @@ class CiscoumbrellaConnector(BaseConnector):
 
         return (phantom.APP_SUCCESS, resp_json, status_code)
 
-    def _make_post_rest_call(self, endpoint, action_result, data=None, request_params={}):
+    def _make_post_rest_call(self, endpoint, action_result, data=None, request_params=None):
 
         config = self.get_config()
+
+        if request_params is None:
+            request_params = {}
 
         request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
 
@@ -145,7 +156,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.post(self._base_url + endpoint, data=json.dumps(data), headers=headers, params=request_params, verify=True)
+            r = requests.post(self._base_url + endpoint, data=json.dumps(data),   # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                headers=headers, params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
@@ -328,6 +340,7 @@ class CiscoumbrellaConnector(BaseConnector):
 if __name__ == '__main__':
 
     import argparse
+    import sys
 
     import pudb
 
@@ -338,12 +351,14 @@ if __name__ == '__main__':
     argparser.add_argument('input_test_json', help='Input Test JSON file')
     argparser.add_argument('-u', '--username', help='username', required=False)
     argparser.add_argument('-p', '--password', help='password', required=False)
+    argparser.add_argument('-v', '--verify', action='store_true', help='verify', required=False, default=False)
 
     args = argparser.parse_args()
     session_id = None
 
     username = args.username
     password = args.password
+    verify = args.verify
 
     if (username is not None and password is None):
 
@@ -355,7 +370,7 @@ if __name__ == '__main__':
         try:
             print("Accessing the Login page")
             login_url = BaseConnector._get_phantom_base_url() + "login"
-            r = requests.get(login_url, verify=False)
+            r = requests.get(login_url, verify=verify)    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
             csrftoken = r.cookies['csrftoken']
 
             data = dict()
@@ -368,11 +383,12 @@ if __name__ == '__main__':
             headers['Referer'] = BaseConnector._get_phantom_base_url() + 'login'
 
             print("Logging into Platform to get the session id")
-            r2 = requests.post(login_url, verify=False, data=data, headers=headers)
+            r2 = requests.post(login_url, verify=verify,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                data=data, headers=headers)
             session_id = r2.cookies['sessionid']
         except Exception as e:
             print("Unable to get session id from the platfrom. Error: " + str(e))
-            exit(1)
+            sys.exit(1)
 
     with open(args.input_test_json) as f:
         in_json = f.read()
@@ -389,4 +405,4 @@ if __name__ == '__main__':
         ret_val = connector._handle_action(json.dumps(in_json), None)
         print(json.dumps(json.loads(ret_val), indent=4))
 
-    exit(0)
+    sys.exit(0)
