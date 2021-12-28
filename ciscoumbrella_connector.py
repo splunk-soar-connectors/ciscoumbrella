@@ -79,8 +79,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.delete(self._base_url + endpoint, headers=headers,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                params=request_params, verify=True)
+            r = requests.delete(self._base_url + endpoint,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                headers=headers, params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
@@ -118,8 +118,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.get(self._base_url + endpoint, headers=headers,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                params=request_params, verify=True)
+            r = requests.get(self._base_url + endpoint,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                headers=headers, params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
@@ -156,8 +156,8 @@ class CiscoumbrellaConnector(BaseConnector):
         status_code = None
 
         try:
-            r = requests.post(self._base_url + endpoint, data=json.dumps(data),   # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                headers=headers, params=request_params, verify=True)
+            r = requests.post(self._base_url + endpoint,   # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+                 data=json.dumps(data), headers=headers, params=request_params, verify=True)
         except Exception as e:
             return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
 
