@@ -9,7 +9,7 @@
     "product_vendor": "Cisco",
     "product_name": "Cisco Umbrella",
     "product_version_regex": ".*",
-    "min_phantom_version": "5.0.0",
+    "min_phantom_version": "5.1.0",
     "latest_tested_versions": [
         "Cloud, API s-platform.api.opendns, February 5 2021"
     ],
@@ -19,7 +19,7 @@
     "package_name": "phantom_ciscoumbrella",
     "logo": "logo_ciscoumbrella.svg",
     "logo_dark": "logo_ciscoumbrella_dark.svg",
-    "license": "Copyright (c) 2021 Splunk Inc.",
+    "license": "Copyright (c) 2021-2022 Splunk Inc.",
     "configuration": {
         "customer_key": {
             "data_type": "password",
