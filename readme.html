@@ -1,5 +1,5 @@
 <!-- File: readme.html
-  Copyright (c) 2021 Splunk Inc.
+  Copyright (c) 2021-2022 Splunk Inc.
 
   Licensed under Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)
 -->
@@ -14,7 +14,7 @@
           <li>The integration URL will be of the form: <b>https://s-platform.api.opendns.com/1.0/events?customerKey=bac2bfa7-d134-4b85-a5ed-b1ffec027a91</b> One of the parameters to this URL is the customer key (GUID format). This value will be required while configuring the Cisco Umbrella asset on Phantom. The Cisco Umbrella App on Phantom will use this customer key while adding, listing, and deleting domains.</li>
           <li>Go to Policies &gt; Policy Components &gt; Security Settings, click on add, and check the relevant security settings. Scroll down and under Integrations select 'Phantom Orchestration Feed'.</li>
       </ul>
-      <p>At the end of the above steps Cisco Umbrella has been configured to:<br> 
+      <p>At the end of the above steps Cisco Umbrella has been configured to:<br>
       <ul>
           <li>Create a 'custom integration' domain list with a <em>customerKey</em> for Phantom to use.</li>
           <li>Use the domains belonging to the 'Phantom Orchestration Feed' to block DNS requests.</li>
