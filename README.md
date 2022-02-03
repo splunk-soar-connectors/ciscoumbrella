@@ -2,16 +2,16 @@
 # Cisco Umbrella
 
 Publisher: Splunk  
-Connector Version: 1\.1\.2  
+Connector Version: 1\.1\.4  
 Product Vendor: Cisco  
 Product Name: Cisco Umbrella  
 Product Version Supported (regex): "\.\*"  
-Minimum Product Version: 5\.0\.0  
+Minimum Product Version: 5\.1\.0  
 
 This app allows management of a domain list on the Cisco Umbrella Security platform
 
-[comment]: # " File: readme.md"
-[comment]: # "  Copyright (c) 2021 Splunk Inc."
+[comment]: # " File: README.md"
+[comment]: # "  Copyright (c) 2021-2022 Splunk Inc."
 [comment]: # ""
 [comment]: # "  Licensed under Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)"
 [comment]: # ""
