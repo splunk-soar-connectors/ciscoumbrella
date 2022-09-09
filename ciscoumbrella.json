@@ -4,14 +4,14 @@
     "description": "This app allows management of a domain list on the Cisco Umbrella Security platform",
     "type": "endpoint",
     "main_module": "ciscoumbrella_connector.py",
-    "app_version": "1.1.4",
+    "app_version": "1.2.0",
     "utctime_updated": "2022-02-03T01:10:59.000000Z",
     "product_vendor": "Cisco",
     "product_name": "Cisco Umbrella",
     "product_version_regex": ".*",
-    "min_phantom_version": "5.1.0",
+    "min_phantom_version": "5.3.3",
     "latest_tested_versions": [
-        "Cloud, API s-platform.api.opendns, February 5 2021"
+        "Cloud, API s-platform.api.opendns, September 8 2022"
     ],
     "python_version": "3",
     "fips_compliant": true,
@@ -22,10 +22,22 @@
     "license": "Copyright (c) 2021-2022 Splunk Inc.",
     "configuration": {
         "customer_key": {
+            "description": "Cisco Customer key",
             "data_type": "password",
             "order": 0,
-            "description": "Cisco Customer key",
             "required": true
+        },
+        "retry_count": {
+            "description": "Maximum attempts to retry the API call (Default: 3)",
+            "data_type": "numeric",
+            "order": 1,
+            "default": 3
+        },
+        "retry_wait_time": {
+            "description": "Delay in seconds between retries (Default: 60)",
+            "data_type": "numeric",
+            "order": 2,
+            "default": 60
         }
     },
     "actions": [
@@ -45,7 +57,14 @@
             "type": "investigate",
             "identifier": "list_blocked_domains",
             "read_only": true,
-            "parameters": {},
+            "parameters": {
+                "limit": {
+                    "description": "Maximum number of results to fetch",
+                    "data_type": "numeric",
+                    "default": 200,
+                    "order": 0
+                }
+            },
             "render": {
                 "width": 12,
                 "title": "List Blocked Domains",
@@ -62,16 +81,11 @@
                     ]
                 },
                 {
-                    "data_path": "action_result.data.*.data.*.id",
-                    "data_type": "numeric"
-                },
-                {
-                    "data_path": "action_result.data.*.data.*.name",
-                    "data_type": "string"
-                },
-                {
                     "data_path": "action_result.data.*.id",
                     "data_type": "numeric",
+                    "example_values": [
+                        25837
+                    ],
                     "contains": [
                         "cisco domain id"
                     ],
@@ -79,24 +93,11 @@
                     "column_order": 1
                 },
                 {
-                    "data_path": "action_result.data.*.meta.limit",
-                    "data_type": "numeric"
-                },
-                {
-                    "data_path": "action_result.data.*.meta.next",
-                    "data_type": "boolean"
-                },
-                {
-                    "data_path": "action_result.data.*.meta.page",
-                    "data_type": "numeric"
-                },
-                {
-                    "data_path": "action_result.data.*.meta.prev",
-                    "data_type": "boolean"
-                },
-                {
                     "data_path": "action_result.data.*.name",
                     "data_type": "string",
+                    "example_values": [
+                        "test.com"
+                    ],
                     "contains": [
                         "domain"
                     ],
@@ -104,8 +105,18 @@
                     "column_order": 0
                 },
                 {
+                    "data_path": "action_result.data.*.lastSeenAt",
+                    "data_type": "numeric",
+                    "example_values": [
+                        1662618587
+                    ]
+                },
+                {
                     "data_path": "action_result.summary.total_domains",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        21
+                    ]
                 },
                 {
                     "data_path": "action_result.message",
@@ -116,11 +127,17 @@
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "versions": "EQ(*)"
@@ -206,11 +223,17 @@
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "versions": "EQ(*)"
@@ -280,11 +303,17 @@
                 },
                 {
                     "data_path": "summary.total_objects",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 },
                 {
                     "data_path": "summary.total_objects_successful",
-                    "data_type": "numeric"
+                    "data_type": "numeric",
+                    "example_values": [
+                        1
+                    ]
                 }
             ],
             "versions": "EQ(*)"
@@ -294,7 +323,7 @@
         "wheel": [
             {
                 "module": "certifi",
-                "input_file": "wheels/shared/certifi-2021.10.8-py2.py3-none-any.whl"
+                "input_file": "wheels/py3/certifi-2022.6.15-py3-none-any.whl"
             },
             {
                 "module": "chardet",
@@ -314,7 +343,7 @@
             },
             {
                 "module": "urllib3",
-                "input_file": "wheels/shared/urllib3-1.26.8-py2.py3-none-any.whl"
+                "input_file": "wheels/shared/urllib3-1.26.12-py2.py3-none-any.whl"
             }
         ]
     },
@@ -322,7 +351,7 @@
         "wheel": [
             {
                 "module": "certifi",
-                "input_file": "wheels/shared/certifi-2021.10.8-py2.py3-none-any.whl"
+                "input_file": "wheels/py3/certifi-2022.6.15-py3-none-any.whl"
             },
             {
                 "module": "chardet",
@@ -342,7 +371,7 @@
             },
             {
                 "module": "urllib3",
-                "input_file": "wheels/shared/urllib3-1.26.8-py2.py3-none-any.whl"
+                "input_file": "wheels/shared/urllib3-1.26.12-py2.py3-none-any.whl"
             }
         ]
     }

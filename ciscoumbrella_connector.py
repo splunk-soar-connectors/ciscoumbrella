@@ -14,6 +14,7 @@
 # and limitations under the License.
 #
 #
+import time
 from datetime import datetime
 
 import phantom.app as phantom
@@ -37,16 +38,48 @@ class CiscoumbrellaConnector(BaseConnector):
         # Call the BaseConnectors init first
         super(CiscoumbrellaConnector, self).__init__()
 
+    def _validate_integer(self, action_result, parameter, key, allow_zero=False):
+        if parameter is not None:
+            try:
+                if not float(parameter).is_integer():
+                    return action_result.set_status(phantom.APP_ERROR, CISCOUMB_VALID_INT_MSG.format(param=key)), None
+
+                parameter = int(parameter)
+            except Exception:
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_VALID_INT_MSG.format(param=key)), None
+
+            if parameter < 0:
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_NON_NEG_INT_MSG.format(param=key)), None
+            if not allow_zero and parameter == 0:
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_NON_NEG_NON_ZERO_INT_MSG.format(param=key)), None
+
+        return phantom.APP_SUCCESS, parameter
+
     def initialize(self):
 
         # Base URL
         self._base_url = CISCOUMB_REST_API_URL
-        if (self._base_url.endswith('/')):
+        if self._base_url.endswith('/'):
             self._base_url = self._base_url[:-1]
 
         self._host = self._base_url[self._base_url.find('//') + 2:]
 
-        self._base_url = '{0}/1.0'.format(self._base_url)
+        self._base_url = '{0}/{1}'.format(self._base_url, CISCOUMB_REST_API_VER)
+
+        config = self.get_config()
+        self._key = config[CISCOUMB_JSON_CUSTKEY]
+
+        self._number_of_retries = config.get("retry_count", CISCOUMB_DEFAULT_NUMBER_OF_RETRIES)
+        ret_val, self._number_of_retries = self._validate_integer(self, self._number_of_retries,
+                "'Maximum attempts to retry the API call' asset configuration")
+        if phantom.is_fail(ret_val):
+            return self.get_status()
+
+        self._retry_wait_time = config.get("retry_wait_time", CISCOUMB_DEFAULT_RETRY_WAIT_TIME)
+        ret_val, self._retry_wait_time = self._validate_integer(self, self._retry_wait_time,
+                "'Delay in seconds between retries' asset configuration")
+        if phantom.is_fail(ret_val):
+            return self.get_status()
 
         return phantom.APP_SUCCESS
 
@@ -54,130 +87,96 @@ class CiscoumbrellaConnector(BaseConnector):
 
         ret_val = ''
 
-        if (not resp_json):
+        if not resp_json:
             return ret_val
 
         ret_val = resp_json.get('message', '')
 
-        if (response.status_code == 500):
+        if response.status_code == 500:
             ret_val += ". The service may be down or your license may have expired."
 
         return ret_val
 
-    def _make_delete_rest_call(self, endpoint, action_result, request_params=None):
+    def _paginator(self, endpoint, action_result, params=None, limit=0):
 
-        config = self.get_config()
+        if not isinstance(params, dict):
+            params = dict()
+
+        data = list()
+        params["limit"] = CISCOUMB_DEFAULT_DOMAIN_LIMIT
+        page = 1
+        while True:
+            params["page"] = page
+
+            status, response = self._make_rest_call(endpoint, action_result, request_params=params)
+            if phantom.is_fail(status):
+                return action_result.get_status(), data
+
+            data.extend(response.get("data", []))
+
+            if limit and len(data) >= limit:
+                return phantom.APP_SUCCESS, data[:limit]
+
+            if not response.get("meta", {}).get("next"):
+                break
+
+            page += 1
+
+        return phantom.APP_SUCCESS, data
+
+    def _make_rest_call(self, endpoint, action_result, request_params=None, method="get", data=None):
 
         if request_params is None:
             request_params = {}
 
-        request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
+        request_params.update({'customerKey': self._key})
 
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
         resp_json = None
-        status_code = None
 
-        try:
-            r = requests.delete(self._base_url + endpoint,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                headers=headers, params=request_params, verify=True)
-        except Exception as e:
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
+        # get or post or delete, whatever the caller asked us to use, if not specified the default will be 'get'
+        request_func = getattr(requests, method)
 
-        # self.debug_print('REST url: {0}'.format(r.url))
+        # handle the error in case the caller specified a non-existent method
+        if not request_func:
+            return action_result.set_status(
+                phantom.APP_ERROR, "Unsupported method {}".format(method)), resp_json
 
-        status_code = r.status_code
+        if data:
+            data = json.dumps(data)
 
-        if (r.status_code == 204):  # success, but no data
-            return (phantom.APP_SUCCESS, resp_json, status_code)
-
-        if (r.status_code != requests.codes.ok):  # pylint: disable=E1101
-
+        for _ in range(self._number_of_retries):
+            # Make the call
             try:
-                resp_json = r.json()
-            except:
-                return (action_result.set_status(phantom.APP_ERROR, "Response not a valid json"), resp_json, status_code)
+                r = request_func("{}{}".format(self._base_url, endpoint),
+                    headers=headers, params=request_params, verify=True, data=data, timeout=CISCOUMB_DEFAULT_TIMEOUT)
+            except Exception as e:
+                self.error_print(CISCOUMB_ERR_SERVER_CONNECTION, e)
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json
 
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_FROM_SERVER, status=r.status_code,
-                message=self._get_error_message(resp_json, r)), resp_json, status_code)
+            # Retry wait mechanism for the rate limit exceeded error
+            if r.status_code != 429:
+                break
+            self.debug_print("Received 429 status code from the server")
+            time.sleep(self._retry_wait_time)
 
-        return (phantom.APP_SUCCESS, resp_json, status_code)
-
-    def _make_rest_call(self, endpoint, action_result, request_params=None):
-
-        config = self.get_config()
-
-        if request_params is None:
-            request_params = {}
-
-        request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
-
-        headers = {'Content-Type': 'application/json'}
-
-        resp_json = None
-        status_code = None
-
-        try:
-            r = requests.get(self._base_url + endpoint,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                headers=headers, params=request_params, verify=True)
-        except Exception as e:
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
-
-        # self.debug_print('REST url: {0}'.format(r.url))
+        if r.status_code == 204:  # success, return from here, requests treats 204 as !ok
+            return phantom.APP_SUCCESS, resp_json
 
         try:
             resp_json = r.json()
-        except:
-            return (action_result.set_status(phantom.APP_ERROR, "Response not a valid json"), resp_json, status_code)
+        except Exception:
+            return action_result.set_status(phantom.APP_ERROR, "Response is not a valid json"), resp_json
 
-        status_code = r.status_code
+        if r.status_code == 202:  # success, return from here, requests treats 202 as !ok
+            return phantom.APP_SUCCESS, resp_json
 
-        # if (r.status_code == 204):  # success, but no data
-        #     return (phantom.APP_SUCCESS, resp_json, status_code)
+        if r.status_code != requests.codes.ok:  # pylint: disable=E1101
+            return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_FROM_SERVER, status=r.status_code,
+                message=self._get_error_message(resp_json, r)), resp_json
 
-        if (r.status_code != requests.codes.ok):  # pylint: disable=E1101
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_FROM_SERVER, status=r.status_code,
-                message=self._get_error_message(resp_json, r)), resp_json, status_code)
-
-        return (phantom.APP_SUCCESS, resp_json, status_code)
-
-    def _make_post_rest_call(self, endpoint, action_result, data=None, request_params=None):
-
-        config = self.get_config()
-
-        if request_params is None:
-            request_params = {}
-
-        request_params.update({'customerKey': config[CISCOUMB_JSON_CUSTKEY]})
-
-        headers = {'Content-Type': 'application/json'}
-
-        resp_json = None
-        status_code = None
-
-        try:
-            r = requests.post(self._base_url + endpoint,   # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                 data=json.dumps(data), headers=headers, params=request_params, verify=True)
-        except Exception as e:
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json, status_code)
-
-        # self.debug_print('REST url: {0}'.format(r.url))
-
-        try:
-            resp_json = r.json()
-        except:
-            return (action_result.set_status(phantom.APP_ERROR, "Response not a valid json"), resp_json, status_code)
-
-        status_code = r.status_code
-
-        if (r.status_code == 202):  # success, return from here, requests treats 202 as !ok
-            return (phantom.APP_SUCCESS, resp_json, status_code)
-
-        if (r.status_code != requests.codes.ok):  # pylint: disable=E1101
-            return (action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_FROM_SERVER, status=r.status_code,
-                message=self._get_error_message(resp_json, r)), resp_json, status_code)
-
-        return (phantom.APP_SUCCESS, resp_json, status_code)
+        return phantom.APP_SUCCESS, resp_json
 
     def _test_connectivity(self, param):
 
@@ -189,19 +188,18 @@ class CiscoumbrellaConnector(BaseConnector):
 
         endpoint = '/domains'
 
-        action_result = ActionResult()
+        action_result = self.add_action_result(ActionResult(dict(param)))
 
         self.save_progress(CISCOUMB_MSG_GET_DOMAIN_LIST_TEST)
 
-        ret_val, response, status_code = self._make_rest_call(endpoint, action_result, {'page': 1, 'limit': 1})
+        ret_val, _ = self._make_rest_call(endpoint, action_result, {'page': 1, 'limit': 1})
 
-        if (phantom.is_fail(ret_val)):
-            self.debug_print(action_result.get_message())
-            self.set_status(phantom.APP_ERROR, action_result.get_message())
-            self.append_to_message(CISCOUMB_ERR_CONNECTIVITY_TEST)
-            return self.get_status()
+        if phantom.is_fail(ret_val):
+            self.save_progress(CISCOUMB_ERR_CONNECTIVITY_TEST)
+            return action_result.get_status()
 
-        return self.set_status_save_progress(phantom.APP_SUCCESS, CISCOUMB_SUCC_CONNECTIVITY_TEST)
+        self.save_progress(CISCOUMB_SUCC_CONNECTIVITY_TEST)
+        return action_result.set_status(phantom.APP_SUCCESS)
 
     def _list_blocked_domains(self, param):
 
@@ -215,16 +213,15 @@ class CiscoumbrellaConnector(BaseConnector):
 
         endpoint = '/domains'
 
-        page_index = param.get(CISCOUMB_JSON_PAGE_INDEX, CISCOUMB_DEFAULT_PAGE_INDEX)
-        domain_limit = param.get(CISCOUMB_JSON_DOMAIN_LIMIT, CISCOUMB_DEFAULT_DOMAIN_LIMIT)
+        domain_limit = param.get(CISCOUMB_JSON_DOMAIN_LIMIT)
+        ret_val, domain_limit = self._validate_integer(action_result, domain_limit, "'limit'")
+        if phantom.is_fail(ret_val):
+            return action_result.get_status()
 
-        ret_val, response, status_code = self._make_rest_call(endpoint, action_result, {'page': page_index, 'limit': domain_limit})
+        ret_val, domain_list = self._paginator(endpoint, action_result, limit=domain_limit)
 
-        if (phantom.is_fail(ret_val)):
-            self.debug_print(action_result.get_message())
-            return self.set_status(phantom.APP_ERROR, action_result.get_message())
-
-        domain_list = response.get('data', [])
+        if phantom.is_fail(ret_val):
+            return action_result.get_status()
 
         action_result.update_summary({CISCOUMB_JSON_TOTAL_DOMAINS: len(domain_list)})
 
@@ -249,11 +246,10 @@ class CiscoumbrellaConnector(BaseConnector):
 
         request_params = {'where[name]': domain}
 
-        ret_val, response, status_code = self._make_delete_rest_call(endpoint, action_result, request_params)
+        ret_val, response = self._make_rest_call(endpoint, action_result, request_params, method="delete")
 
-        if (phantom.is_fail(ret_val)):
-            self.debug_print(action_result.get_message())
-            return self.set_status(phantom.APP_ERROR, action_result.get_message())
+        if phantom.is_fail(ret_val):
+            return action_result.get_status()
 
         action_result.add_data(response)
 
@@ -269,14 +265,10 @@ class CiscoumbrellaConnector(BaseConnector):
         # Connectivity
         self.save_progress(phantom.APP_PROG_CONNECTING_TO_ELLIPSES, self._host)
 
-        ret_val, ret_data, status_code = self.get_container_info()
+        ret_val, container_info, _ = self.get_container_info()
 
-        if (ret_val is False):
-            return action_result.set_status(phantom.APP_ERROR, ret_data)
-
-        container_info = ret_data
-
-        self.debug_print("Container info: ", container_info)
+        if phantom.is_fail(ret_val):
+            return action_result.set_status(phantom.APP_ERROR, "Unable to get container information")
 
         endpoint = '/events'
 
@@ -297,41 +289,32 @@ class CiscoumbrellaConnector(BaseConnector):
                 'eventType': container_info['label'],
                 'eventSeverity': container_info['severity']}
 
-        self.debug_print("Event:", event)
-
         events.append(event)
 
-        ret_val, response, status_code = self._make_post_rest_call(endpoint, action_result, data=events)
+        ret_val, response = self._make_rest_call(endpoint, action_result, method="post", data=events)
 
-        if (phantom.is_fail(ret_val)):
-            self.debug_print(action_result.get_message())
+        if phantom.is_fail(ret_val):
             return action_result.get_status()
 
         action_result.add_data(response)
 
-        return action_result.set_status(phantom.APP_SUCCESS, CISCOUMB_LIST_UPDATED_WITH_GUID, id=response['id'])
+        return action_result.set_status(phantom.APP_SUCCESS, CISCOUMB_LIST_UPDATED_WITH_GUID.format(id=response['id']))
 
     def handle_action(self, param):
-        """Function that handles all the actions
-
-            Args:
-
-            Return:
-                A status code
-        """
+        """Function that handles all the actions"""
 
         # Get the action that we are supposed to carry out, set it in the connection result object
         action = self.get_action_identifier()
 
         ret_val = phantom.APP_SUCCESS
 
-        if (action == self.ACTION_ID_LIST_BLOCKED_DOMAINS):
+        if action == self.ACTION_ID_LIST_BLOCKED_DOMAINS:
             ret_val = self._list_blocked_domains(param)
-        elif (action == self.ACTION_ID_BLOCK_DOMAIN):
+        elif action == self.ACTION_ID_BLOCK_DOMAIN:
             ret_val = self._block_domain(param)
-        elif (action == self.ACTION_ID_UNBLOCK_DOMAIN):
+        elif action == self.ACTION_ID_UNBLOCK_DOMAIN:
             ret_val = self._unblock_domain(param)
-        elif (action == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY):
+        elif action == phantom.ACTION_ID_TEST_ASSET_CONNECTIVITY:
             ret_val = self._test_connectivity(param)
 
         return ret_val
@@ -360,17 +343,17 @@ if __name__ == '__main__':
     password = args.password
     verify = args.verify
 
-    if (username is not None and password is None):
+    if username is not None and password is None:
 
         # User specified a username but not a password, so ask
         import getpass
         password = getpass.getpass("Password: ")
 
-    if (username and password):
+    if username and password:
         try:
             print("Accessing the Login page")
             login_url = BaseConnector._get_phantom_base_url() + "login"
-            r = requests.get(login_url, verify=verify)    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
+            r = requests.get(login_url, verify=verify, timeout=CISCOUMB_DEFAULT_TIMEOUT)
             csrftoken = r.cookies['csrftoken']
 
             data = dict()
@@ -383,11 +366,11 @@ if __name__ == '__main__':
             headers['Referer'] = BaseConnector._get_phantom_base_url() + 'login'
 
             print("Logging into Platform to get the session id")
-            r2 = requests.post(login_url, verify=verify,    # nosemgrep: python.requests.best-practice.use-timeout.use-timeout
-                data=data, headers=headers)
+            r2 = requests.post(login_url, verify=verify,
+                data=data, headers=headers, timeout=CISCOUMB_DEFAULT_TIMEOUT)
             session_id = r2.cookies['sessionid']
         except Exception as e:
-            print("Unable to get session id from the platfrom. Error: " + str(e))
+            print("Unable to get session id from the platform. Error: " + str(e))
             sys.exit(1)
 
     with open(args.input_test_json) as f:
@@ -398,7 +381,7 @@ if __name__ == '__main__':
         connector = CiscoumbrellaConnector()
         connector.print_progress_message = True
 
-        if (session_id is not None):
+        if session_id is not None:
             in_json['user_session_token'] = session_id
             connector._set_csrf_info(csrftoken, headers['Referer'])
 
