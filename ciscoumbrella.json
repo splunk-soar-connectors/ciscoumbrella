@@ -81,6 +81,13 @@
                     ]
                 },
                 {
+                    "data_path": "action_result.parameter.limit",
+                    "data_type": "numeric",
+                    "example_values": [
+                        200
+                    ]
+                },
+                {
                     "data_path": "action_result.data.*.id",
                     "data_type": "numeric",
                     "example_values": [
