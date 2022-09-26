@@ -146,7 +146,7 @@ class CiscoumbrellaConnector(BaseConnector):
         if data:
             data = json.dumps(data)
 
-        for _ in range(self._number_of_retries):
+        for retry in range(self._number_of_retries + 1):
             # Make the call
             try:
                 r = request_func("{}{}".format(self._base_url, endpoint),
@@ -159,7 +159,9 @@ class CiscoumbrellaConnector(BaseConnector):
             if r.status_code != 429:
                 break
             self.debug_print("Received 429 status code from the server")
-            time.sleep(self._retry_wait_time)
+            if retry != self._number_of_retries:
+                self.debug_print("Retrying after {} second(s)...".format(self._retry_wait_time))
+                time.sleep(self._retry_wait_time)
 
         if r.status_code == 204:  # success, return from here, requests treats 204 as !ok
             return phantom.APP_SUCCESS, resp_json
