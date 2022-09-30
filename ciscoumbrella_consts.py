@@ -29,6 +29,14 @@ CISCOUMB_MSG_GET_DOMAIN_LIST_TEST = "Querying a single domain entry to check cre
 CISCOUMB_USING_BASE_URL = "Using url: {base_url}"
 
 CISCOUMB_REST_API_URL = "https://s-platform.api.opendns.com"
-CISCOUMP_REST_API_VER = '1.0'
+CISCOUMB_REST_API_VER = '1.0'
 CISCOUMB_DEFAULT_PAGE_INDEX = 1
 CISCOUMB_DEFAULT_DOMAIN_LIMIT = 200
+CISCOUMB_DEFAULT_TIMEOUT = 60  # in seconds
+CISCOUMB_DEFAULT_NUMBER_OF_RETRIES = 3
+CISCOUMB_DEFAULT_RETRY_WAIT_TIME = 60  # in seconds
+
+# Constants relating to 'validate_integer'
+CISCOUMB_VALID_INT_MSG = "Please provide a valid integer value in the {param} parameter"
+CISCOUMB_NON_NEG_NON_ZERO_INT_MSG = "Please provide a valid non-zero positive integer value in the {param} parameter"
+CISCOUMB_NON_NEG_INT_MSG = "Please provide a valid non-negative integer value in the {param} parameter"
