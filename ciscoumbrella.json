@@ -4,7 +4,7 @@
     "description": "This app allows management of a domain list on the Cisco Umbrella Security platform",
     "type": "endpoint",
     "main_module": "ciscoumbrella_connector.py",
-    "app_version": "1.2.0",
+    "app_version": "1.2.1",
     "utctime_updated": "2022-02-03T01:10:59.000000Z",
     "product_vendor": "Cisco",
     "product_name": "Cisco Umbrella",
