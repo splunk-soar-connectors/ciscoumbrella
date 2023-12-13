@@ -2,16 +2,16 @@
 # Cisco Umbrella
 
 Publisher: Splunk  
-Connector Version: 1\.2\.0  
+Connector Version: 1.2.1  
 Product Vendor: Cisco  
 Product Name: Cisco Umbrella  
-Product Version Supported (regex): "\.\*"  
-Minimum Product Version: 5\.3\.3  
+Product Version Supported (regex): ".\*"  
+Minimum Product Version: 5.3.3  
 
 This app allows management of a domain list on the Cisco Umbrella Security platform
 
 [comment]: # " File: README.md"
-[comment]: # "  Copyright (c) 2021-2022 Splunk Inc."
+[comment]: # "  Copyright (c) 2021-2023 Splunk Inc."
 [comment]: # ""
 [comment]: # "  Licensed under Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0.txt)"
 [comment]: # ""
@@ -60,9 +60,9 @@ The below configuration variables are required for this Connector to operate.  T
 
 VARIABLE | REQUIRED | TYPE | DESCRIPTION
 -------- | -------- | ---- | -----------
-**customer\_key** |  required  | password | Cisco Customer key
-**retry\_count** |  optional  | numeric | Maximum attempts to retry the API call \(Default\: 3\)
-**retry\_wait\_time** |  optional  | numeric | Delay in seconds between retries \(Default\: 60\)
+**customer_key** |  required  | password | Cisco Customer key
+**retry_count** |  optional  | numeric | Maximum attempts to retry the API call (Default: 3)
+**retry_wait_time** |  optional  | numeric | Delay in seconds between retries (Default: 60)
 
 ### Supported Actions  
 [test connectivity](#action-test-connectivity) - Validate the asset configuration for connectivity  
@@ -94,17 +94,17 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **limit** |  optional  | Maximum number of results to fetch | numeric | 
 
 #### Action Output
-DATA PATH | TYPE | CONTAINS
---------- | ---- | --------
-action\_result\.status | string | 
-action\_result\.parameter\.limit | numeric | 
-action\_result\.data\.\*\.id | numeric |  `cisco domain id` 
-action\_result\.data\.\*\.name | string |  `domain` 
-action\_result\.data\.\*\.lastSeenAt | numeric | 
-action\_result\.summary\.total\_domains | numeric | 
-action\_result\.message | string | 
-summary\.total\_objects | numeric | 
-summary\.total\_objects\_successful | numeric |   
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.status | string |  |   success  failed 
+action_result.parameter.limit | numeric |  |   200 
+action_result.data.\*.id | numeric |  `cisco domain id`  |   25837 
+action_result.data.\*.name | string |  `domain`  |   test.com 
+action_result.data.\*.lastSeenAt | numeric |  |   1662618587 
+action_result.summary.total_domains | numeric |  |   21 
+action_result.message | string |  |   Total domains: 21 
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1   
 
 ## action: 'block domain'
 Block a domain
@@ -112,25 +112,25 @@ Block a domain
 Type: **contain**  
 Read only: **False**
 
-Cisco has many safeguards in place before adding a domain to a block list\. These are present to protect against accidentally submitting domains for highly popular or known sites like google\.com\. If the 'disable\_safeguards' parameter is set to True \(or checked\), those safeguards will be bypassed\. This could potentially allow adding a well\-known domain like google\.com to a domain block list\.
+Cisco has many safeguards in place before adding a domain to a block list. These are present to protect against accidentally submitting domains for highly popular or known sites like google.com. If the 'disable_safeguards' parameter is set to True (or checked), those safeguards will be bypassed. This could potentially allow adding a well-known domain like google.com to a domain block list.
 
 #### Action Parameters
 PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 --------- | -------- | ----------- | ---- | --------
 **domain** |  required  | Domain to block | string |  `domain` 
-**disable\_safeguards** |  optional  | Disable safeguards while blocking the domain | boolean | 
+**disable_safeguards** |  optional  | Disable safeguards while blocking the domain | boolean | 
 
 #### Action Output
-DATA PATH | TYPE | CONTAINS
---------- | ---- | --------
-action\_result\.status | string | 
-action\_result\.parameter\.disable\_safeguards | boolean | 
-action\_result\.parameter\.domain | string |  `domain` 
-action\_result\.data\.\*\.id | string | 
-action\_result\.summary | string | 
-action\_result\.message | string | 
-summary\.total\_objects | numeric | 
-summary\.total\_objects\_successful | numeric |   
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.status | string |  |   success  failed 
+action_result.parameter.disable_safeguards | boolean |  |   True  False 
+action_result.parameter.domain | string |  `domain`  |   test.com 
+action_result.data.\*.id | string |  |  
+action_result.summary | string |  |  
+action_result.message | string |  |   REST API returned success with id: a4070f26,4cfc,4a5f,9a17-532c093ca151 
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1   
 
 ## action: 'unblock domain'
 Unblock a domain
@@ -144,12 +144,12 @@ PARAMETER | REQUIRED | DESCRIPTION | TYPE | CONTAINS
 **domain** |  required  | Domain to unblock | string |  `domain` 
 
 #### Action Output
-DATA PATH | TYPE | CONTAINS
---------- | ---- | --------
-action\_result\.status | string | 
-action\_result\.parameter\.domain | string |  `domain` 
-action\_result\.data | string | 
-action\_result\.summary | string | 
-action\_result\.message | string | 
-summary\.total\_objects | numeric | 
-summary\.total\_objects\_successful | numeric | 
+DATA PATH | TYPE | CONTAINS | EXAMPLE VALUES
+--------- | ---- | -------- | --------------
+action_result.status | string |  |   success  failed 
+action_result.parameter.domain | string |  `domain`  |   test.com 
+action_result.data | string |  |  
+action_result.summary | string |  |  
+action_result.message | string |  |   Domain successfully unblocked 
+summary.total_objects | numeric |  |   1 
+summary.total_objects_successful | numeric |  |   1 
