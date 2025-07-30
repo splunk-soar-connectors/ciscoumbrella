@@ -1,7 +1,7 @@
 # Cisco Umbrella
 
 Publisher: Splunk \
-Connector Version: 1.2.2 \
+Connector Version: 1.2.3 \
 Product Vendor: Cisco \
 Product Name: Cisco Umbrella \
 Minimum Product Version: 5.3.3

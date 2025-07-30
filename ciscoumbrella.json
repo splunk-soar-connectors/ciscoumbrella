@@ -4,8 +4,8 @@
     "description": "This app allows management of a domain list on the Cisco Umbrella Security platform",
     "type": "endpoint",
     "main_module": "ciscoumbrella_connector.py",
-    "app_version": "1.2.2",
-    "utctime_updated": "2025-04-11T18:21:37.439832Z",
+    "app_version": "1.2.3",
+    "utctime_updated": "2025-07-30T17:37:45.950440Z",
     "product_vendor": "Cisco",
     "product_name": "Cisco Umbrella",
     "product_version_regex": ".*",
@@ -13,7 +13,10 @@
     "latest_tested_versions": [
         "Cloud, API s-platform.api.opendns, September 8 2022"
     ],
-    "python_version": ["3.9", "3.13"],
+    "python_version": [
+        "3.9",
+        "3.13"
+    ],
     "fips_compliant": true,
     "publisher": "Splunk",
     "package_name": "phantom_ciscoumbrella",
