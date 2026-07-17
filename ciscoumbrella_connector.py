@@ -152,9 +152,11 @@ class CiscoumbrellaConnector(BaseConnector):
                     data=data,
                     timeout=CISCOUMB_DEFAULT_TIMEOUT,
                 )
-            except Exception as e:
-                self.error_print(CISCOUMB_ERR_SERVER_CONNECTION, e)
-                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json
+            except Exception:
+                # Request exceptions can embed the full URL, including the
+                # customerKey query parameter. Never persist the raw exception.
+                self.error_print(CISCOUMB_ERR_SERVER_CONNECTION)
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION), resp_json
 
             # Retry wait mechanism for the rate limit exceeded error
             if r.status_code != 429:
