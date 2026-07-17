@@ -117,6 +117,15 @@ class CiscoumbrellaConnector(BaseConnector):
             if not response.get("meta", {}).get("next"):
                 break
 
+            if page >= CISCOUMB_DEFAULT_MAX_PAGES:
+                return (
+                    action_result.set_status(
+                        phantom.APP_ERROR,
+                        f"Pagination exceeded the maximum of {CISCOUMB_DEFAULT_MAX_PAGES} pages",
+                    ),
+                    data,
+                )
+
             page += 1
 
         return phantom.APP_SUCCESS, data
