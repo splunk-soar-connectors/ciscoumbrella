@@ -1,6 +1,6 @@
 # File: ciscoumbrella_connector.py
 #
-# Copyright (c) 2021-2025 Splunk Inc.
+# Copyright (c) 2021-2026 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -117,6 +117,15 @@ class CiscoumbrellaConnector(BaseConnector):
             if not response.get("meta", {}).get("next"):
                 break
 
+            if page >= CISCOUMB_DEFAULT_MAX_PAGES:
+                return (
+                    action_result.set_status(
+                        phantom.APP_ERROR,
+                        f"Pagination exceeded the maximum of {CISCOUMB_DEFAULT_MAX_PAGES} pages",
+                    ),
+                    data,
+                )
+
             page += 1
 
         return phantom.APP_SUCCESS, data
@@ -152,9 +161,11 @@ class CiscoumbrellaConnector(BaseConnector):
                     data=data,
                     timeout=CISCOUMB_DEFAULT_TIMEOUT,
                 )
-            except Exception as e:
-                self.error_print(CISCOUMB_ERR_SERVER_CONNECTION, e)
-                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION, e), resp_json
+            except Exception:
+                # Request exceptions can embed the full URL, including the
+                # customerKey query parameter. Never persist the raw exception.
+                self.error_print(CISCOUMB_ERR_SERVER_CONNECTION)
+                return action_result.set_status(phantom.APP_ERROR, CISCOUMB_ERR_SERVER_CONNECTION), resp_json
 
             # Retry wait mechanism for the rate limit exceeded error
             if r.status_code != 429:

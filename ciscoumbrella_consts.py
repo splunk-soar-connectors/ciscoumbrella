@@ -1,6 +1,6 @@
 # File: ciscoumbrella_consts.py
 #
-# Copyright (c) 2021-2025 Splunk Inc.
+# Copyright (c) 2021-2026 Splunk Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ CISCOUMB_REST_API_URL = "https://s-platform.api.opendns.com"
 CISCOUMB_REST_API_VER = "1.0"
 CISCOUMB_DEFAULT_PAGE_INDEX = 1
 CISCOUMB_DEFAULT_DOMAIN_LIMIT = 200
+CISCOUMB_DEFAULT_MAX_PAGES = 1000
 CISCOUMB_DEFAULT_TIMEOUT = 60  # in seconds
 CISCOUMB_DEFAULT_NUMBER_OF_RETRIES = 3
 CISCOUMB_DEFAULT_RETRY_WAIT_TIME = 60  # in seconds

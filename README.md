@@ -1,9 +1,9 @@
 # Cisco Umbrella
 
-Publisher: Splunk \
-Connector Version: 1.2.4 \
-Product Vendor: Cisco \
-Product Name: Cisco Umbrella \
+Publisher: Splunk <br>
+Connector Version: 1.2.4 <br>
+Product Vendor: Cisco <br>
+Product Name: Cisco Umbrella <br>
 Minimum Product Version: 5.3.3
 
 This app allows management of a domain list on the Cisco Umbrella Security platform
@@ -59,16 +59,16 @@ VARIABLE | REQUIRED | TYPE | DESCRIPTION
 
 ### Supported Actions
 
-[test connectivity](#action-test-connectivity) - Validate the asset configuration for connectivity \
-[list blocked domains](#action-list-blocked-domains) - Queries Cisco for the blocked domain list \
-[block domain](#action-block-domain) - Block a domain \
+[test connectivity](#action-test-connectivity) - Validate the asset configuration for connectivity <br>
+[list blocked domains](#action-list-blocked-domains) - Queries Cisco for the blocked domain list <br>
+[block domain](#action-block-domain) - Block a domain <br>
 [unblock domain](#action-unblock-domain) - Unblock a domain
 
 ## action: 'test connectivity'
 
 Validate the asset configuration for connectivity
 
-Type: **test** \
+Type: **test** <br>
 Read only: **True**
 
 #### Action Parameters
@@ -83,7 +83,7 @@ No Output
 
 Queries Cisco for the blocked domain list
 
-Type: **investigate** \
+Type: **investigate** <br>
 Read only: **True**
 
 #### Action Parameters
@@ -110,7 +110,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Block a domain
 
-Type: **contain** \
+Type: **contain** <br>
 Read only: **False**
 
 Cisco has many safeguards in place before adding a domain to a block list. These are present to protect against accidentally submitting domains for highly popular or known sites like google.com. If the 'disable_safeguards' parameter is set to True (or checked), those safeguards will be bypassed. This could potentially allow adding a well-known domain like google.com to a domain block list.
@@ -139,7 +139,7 @@ summary.total_objects_successful | numeric | | 1 |
 
 Unblock a domain
 
-Type: **correct** \
+Type: **correct** <br>
 Read only: **False**
 
 #### Action Parameters
@@ -164,7 +164,7 @@ ______________________________________________________________________
 
 Auto-generated Splunk SOAR Connector documentation.
 
-Copyright 2025 Splunk Inc.
+Copyright 2026 Splunk Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
