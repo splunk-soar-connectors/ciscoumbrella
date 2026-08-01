@@ -344,9 +344,7 @@ class CiscoumbrellaConnector(BaseConnector):
             if not isinstance(blocked_domains, list):
                 return action_result.set_status(phantom.APP_ERROR, "Domain response data is not a list")
             if any(
-                isinstance(item, dict)
-                and isinstance(item.get("name"), str)
-                and item["name"].casefold() == domain.casefold()
+                isinstance(item, dict) and isinstance(item.get("name"), str) and item["name"].casefold() == domain.casefold()
                 for item in blocked_domains
             ):
                 return action_result.set_status(phantom.APP_SUCCESS, CISCOUMB_LIST_UPDATED_WITH_GUID.format(id=response["id"]))
