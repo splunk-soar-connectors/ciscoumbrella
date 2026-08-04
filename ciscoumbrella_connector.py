@@ -100,19 +100,32 @@ class CiscoumbrellaConnector(BaseConnector):
             params = dict()
 
         data = list()
-        params["limit"] = CISCOUMB_DEFAULT_DOMAIN_LIMIT
+        effective_limit = min(limit or CISCOUMB_DEFAULT_MAX_DOMAINS, CISCOUMB_DEFAULT_MAX_DOMAINS)
         page = 1
+        accumulated_bytes = 0
         while True:
             params["page"] = page
+            params["limit"] = min(CISCOUMB_DEFAULT_DOMAIN_LIMIT, effective_limit - len(data))
 
             status, response = self._make_rest_call(endpoint, action_result, request_params=params)
             if phantom.is_fail(status):
-                return action_result.get_status(), data
+                return action_result.get_status(), []
 
-            data.extend(response.get("data", []))
+            page_data = response.get("data", [])
+            if not isinstance(page_data, list):
+                return action_result.set_status(phantom.APP_ERROR, "Domain response data is not a list"), []
+            if len(page_data) > params["limit"]:
+                return action_result.set_status(phantom.APP_ERROR, "Domain response exceeded the requested page limit"), []
 
-            if limit and len(data) >= limit:
-                return phantom.APP_SUCCESS, data[:limit]
+            accumulated_bytes += self._last_response_bytes
+            if accumulated_bytes > CISCOUMB_DEFAULT_MAX_ACCUMULATED_BYTES:
+                return action_result.set_status(phantom.APP_ERROR, "Domain responses exceeded the accumulated byte limit"), []
+
+            remaining = effective_limit - len(data)
+            data.extend(page_data[:remaining])
+
+            if len(data) >= effective_limit:
+                return phantom.APP_SUCCESS, data
 
             if not response.get("meta", {}).get("next"):
                 break
@@ -123,7 +136,7 @@ class CiscoumbrellaConnector(BaseConnector):
                         phantom.APP_ERROR,
                         f"Pagination exceeded the maximum of {CISCOUMB_DEFAULT_MAX_PAGES} pages",
                     ),
-                    data,
+                    [],
                 )
 
             page += 1
@@ -139,6 +152,7 @@ class CiscoumbrellaConnector(BaseConnector):
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
         resp_json = None
+        self._last_response_bytes = 0
 
         # get or post or delete, whatever the caller asked us to use, if not specified the default will be 'get'
         request_func = getattr(requests, method)
@@ -160,6 +174,7 @@ class CiscoumbrellaConnector(BaseConnector):
                     verify=True,
                     data=data,
                     timeout=CISCOUMB_DEFAULT_TIMEOUT,
+                    stream=True,
                 )
             except Exception:
                 # Request exceptions can embed the full URL, including the
@@ -176,10 +191,18 @@ class CiscoumbrellaConnector(BaseConnector):
                 time.sleep(self._retry_wait_time)
 
         if r.status_code == 204:  # success, return from here, requests treats 204 as !ok
+            r.close()
             return phantom.APP_SUCCESS, resp_json
 
         try:
-            resp_json = r.json()
+            response_chunks = []
+            for chunk in r.iter_content(chunk_size=64 * 1024):
+                self._last_response_bytes += len(chunk)
+                if self._last_response_bytes > CISCOUMB_DEFAULT_MAX_RESPONSE_BYTES:
+                    r.close()
+                    return action_result.set_status(phantom.APP_ERROR, "Response exceeded the byte limit"), resp_json
+                response_chunks.append(chunk)
+            resp_json = json.loads(b"".join(response_chunks))
         except Exception:
             return action_result.set_status(phantom.APP_ERROR, "Response is not a valid json"), resp_json
 
@@ -310,7 +333,30 @@ class CiscoumbrellaConnector(BaseConnector):
 
         action_result.add_data(response)
 
-        return action_result.set_status(phantom.APP_SUCCESS, CISCOUMB_LIST_UPDATED_WITH_GUID.format(id=response["id"]))
+        endpoint = "/domains"
+        request_params = {"where[name]": domain, "page": 1, "limit": 1}
+        for attempt in range(CISCOUMB_BLOCK_CONFIRM_ATTEMPTS):
+            ret_val, block_list = self._make_rest_call(endpoint, action_result, request_params=request_params)
+            if phantom.is_fail(ret_val):
+                return action_result.get_status()
+
+            blocked_domains = block_list.get("data", [])
+            if not isinstance(blocked_domains, list):
+                return action_result.set_status(phantom.APP_ERROR, "Domain response data is not a list")
+            if any(
+                isinstance(item, dict) and isinstance(item.get("name"), str) and item["name"].casefold() == domain.casefold()
+                for item in blocked_domains
+            ):
+                return action_result.set_status(phantom.APP_SUCCESS, CISCOUMB_LIST_UPDATED_WITH_GUID.format(id=response["id"]))
+
+            if attempt + 1 < CISCOUMB_BLOCK_CONFIRM_ATTEMPTS:
+                time.sleep(CISCOUMB_BLOCK_CONFIRM_WAIT_SECONDS)
+
+        return action_result.set_status(
+            phantom.APP_ERROR,
+            "The event was accepted, but the domain did not appear in the block list. "
+            "Cisco Umbrella safeguards may have rejected it; retry with disable_safeguards enabled if blocking is intended.",
+        )
 
     def handle_action(self, param):
         """Function that handles all the actions"""
